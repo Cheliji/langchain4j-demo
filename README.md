@@ -1,6 +1,15 @@
 # LangChain4j 学习 demo
 
-## 聊天与对应模型
+**目录**
+
+- [聊天与对应模型 ](#section-1)
+
+- [聊天记忆](#section-2)
+
+- [AI Services](#section-3)
+
+<a id="section-1"></a>
+## 聊天与对应模型 
 
 | 接口                           | 能力        | 适用场景       |
 | ---------------------------- | --------- | ---------- |
@@ -80,6 +89,7 @@ LangChain4j 启动时会自动将配置文件（application.yml）
     }
 ```
 
+<a id="section-2"></a>
 ## 聊天记忆
 
 ### 记忆与历史
@@ -164,3 +174,110 @@ ChatMemory chatMemory = MessageWindowChatMemory.builder()
 ```
 
 每当向`ChatMemory`添加新的`ChatMessage`时，都会调用`updateMessages()`方法。 这通常在与LLM的每次交互中发生两次： 一次是添加新的`UserMessage`时，另一次是添加新的`AiMessage`时。 `updateMessages()`方法预期会更新与给定内存ID关联的所有消息。 `ChatMessage`可以单独存储（例如，每条消息一条记录/行/对象） 或一起存储（例如，整个`ChatMemory`一条记录/行/对象）
+
+
+<a id="section-3"></a>
+## AI Services
+
+AI Services 是 LangChain4j 提供的高层抽象，旨在**简化与大模型的交互**。它的设计理念类似于 Spring Data JPA —— 你只需要声明一个接口，LangChain4j 会自动生成实现该接口的代理对象，屏蔽底层复杂性
+
+### 基本用法
+
+#### 最简单的 AI 服务
+
+```java
+// 1. 定义接口
+interface Assistant {
+    String chat(String userMessage);
+}
+
+// 2. 创建模型
+ChatLanguageModel model = OpenAiChatModel.builder()
+    .apiKey(System.getenv("OPENAI_API_KEY"))
+    .modelName(GPT_4_O_MINI)
+    .build();
+
+// 3. 创建 AI 服务实例
+Assistant assistant = AiServices.create(Assistant.class, model);
+
+// 4. 使用
+String answer = assistant.chat("Hello");
+System.out.println(answer);// Hello, how can I help you?
+
+```
+
+**工作原理**：`AiServices` 通过反射创建代理对象，自动将 String 转为 `UserMessage`，调用 LLM 后将`AIMessage`转换回 String 返回
+
+### 核心特性详解
+
+**系统消息（@SystemMessage）**
+
+通过注解为对话设置系统角色和指令
+
+```java
+interface Friend {
+    @SystemMessage("You are a good friend of mine. Answer using slang.")
+    String chat(String userMessage);
+}
+
+Friend friend = AiServices.create(Friend.class, model);
+String answer = friend.chat("Hello"); // Hey! What's up?
+```
+
+**从资源文件加载（适合长提示词）**
+
+```java
+@SystemMessage(fromResource = "my-prompt-template.txt")
+String chat(String userMessage);
+```
+
+### 结构化输出
+
+AI Services 支持将 LLM 输出自动解析为 Java 对象
+
+**返回 POJO（复杂对象）**
+
+```java
+class Person {
+    @Description("first name of a person") // 可选描述帮助 LLM 理解
+    String firstName;
+    String lastName;
+    LocalDate birthDate;
+    Address address;
+}
+
+@Description("an address")
+class Address {
+    String street;
+    Integer streetNumber;
+    String city;
+}
+
+interface PersonExtractor {
+    @UserMessage("Extract information about a person from {{it}}")
+    Person extractPersonFrom(String text);
+}
+
+PersonExtractor extractor = AiServices.create(PersonExtractor.class, model);
+Person person = extractor.extractPersonFrom("John Doe was born on 1968-07-04...");
+```
+
+**返回基本类型或枚举**
+
+```java
+// 布尔值
+interface SentimentAnalyzer {
+    @UserMessage("Does {{it}} has a positive sentiment?")
+    boolean isPositive(String text);
+}
+
+// 枚举
+enum Priority { CRITICAL, HIGH, LOW }
+
+interface PriorityAnalyzer {
+    @UserMessage("Analyze the priority of the following issue: {{it}}")
+    Priority analyzePriority(String issueDescription);
+}
+```
+
+
