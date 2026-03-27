@@ -33,4 +33,49 @@ LangChain4j 启动时会自动将配置文件（application.yml）
 **流式响应**，一种通讯协议，虽然底层也是借助 Http 请求，
 但是属于**保持连接状态，服务端给客户端持续发送消息**的情况，
 和正常 Http 请求还是有一些不同。可以参考[SEE协议与流式响应](https://wx.zsxq.com/group/51121244585524/topic/14588152514152842)
+。代码编写时需要使用`SseEmitter`
 
+```java
+@GetMapping(value = "/chat" , produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamChat(@RequestParam String message) {
+
+        SseEmitter sseEmitter = new SseEmitter();
+
+        streamingChatLanguageModel.chat(message, new StreamingChatResponseHandler() {
+            @Override
+            public void onPartialResponse(String message) {
+                try {
+                    System.out.println("message: " + message);
+                    sseEmitter.send(SseEmitter.event()
+                            .data(message, MediaType.APPLICATION_JSON)
+                            .name("message"));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public void onCompleteResponse(ChatResponse chatResponse) {
+                TokenUsage tokenUsage = chatResponse.tokenUsage();
+
+                Integer inputTokenCount = tokenUsage.inputTokenCount();
+                Integer outputTokenCount = tokenUsage.outputTokenCount();
+                Integer totalTokenCount = tokenUsage.totalTokenCount();
+                System.out.println("inputTokenCount: " + inputTokenCount);
+                System.out.println("outputTokenCount: " + outputTokenCount);
+                System.out.println("totalTokenCount: " + totalTokenCount);
+
+                sseEmitter.complete();
+
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                sseEmitter.completeWithError(throwable);
+            }
+        });
+
+        return sseEmitter;
+
+    }
+```
