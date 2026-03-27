@@ -181,6 +181,8 @@ ChatMemory chatMemory = MessageWindowChatMemory.builder()
 
 AI Services 是 LangChain4j 提供的高层抽象，旨在**简化与大模型的交互**。它的设计理念类似于 Spring Data JPA —— 你只需要声明一个接口，LangChain4j 会自动生成实现该接口的代理对象，屏蔽底层复杂性
 
+>个人感觉 AI Services 更多是将调用大模型以及解析响应这一过程进行了封装
+
 ### 基本用法
 
 #### 最简单的 AI 服务
