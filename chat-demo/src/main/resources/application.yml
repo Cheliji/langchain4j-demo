@@ -1,0 +1,21 @@
+server:
+  port: 8081
+
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api.siliconflow.cn/v1
+      api-key: ${SILICONFLOW_API_KEY}
+      model-name: Qwen/Qwen3-32B
+      max-tokens: 4096
+      log-requests: true
+      log-responses: true
+    streaming-chat-model:
+      base-url: https://api.siliconflow.cn/v1
+      api-key: ${SILICONFLOW_API_KEY}
+      model-name: Qwen/Qwen3-32B
+      max-tokens: 4096
+
+logging:
+  level:
+    dev.langchain4j: DEBUG
