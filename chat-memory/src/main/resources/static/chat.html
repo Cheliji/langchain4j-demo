@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 聊天</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #fff;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .header .user-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: #007bff;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .message-content {
+            background: #fff;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+            max-width: 80%;
+            font-size: 14px;
+        }
+
+        /* Markdown 样式 */
+        .message.ai .message-content h1,
+        .message.ai .message-content h2,
+        .message.ai .message-content h3,
+        .message.ai .message-content h4 {
+            margin: 12px 0 8px 0;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .message.ai .message-content h1 { font-size: 18px; }
+        .message.ai .message-content h2 { font-size: 16px; }
+        .message.ai .message-content h3 { font-size: 15px; }
+        .message.ai .message-content h4 { font-size: 14px; }
+
+        .message.ai .message-content p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .message.ai .message-content p:first-child {
+            margin-top: 0;
+        }
+
+        .message.ai .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message.ai .message-content ul,
+        .message.ai .message-content ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .message.ai .message-content li {
+            margin: 4px 0;
+            line-height: 1.6;
+        }
+
+        .message.ai .message-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            color: #d63384;
+        }
+
+        .message.ai .message-content pre {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+        }
+
+        .message.ai .message-content pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+        }
+
+        .message.ai .message-content blockquote {
+            border-left: 3px solid #007bff;
+            margin: 10px 0;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            color: #555;
+        }
+
+        .message.ai .message-content strong {
+            font-weight: 600;
+            color: #000;
+        }
+
+        .message.ai .message-content em {
+            font-style: italic;
+        }
+
+        .message.ai .message-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .message.ai .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        .message.ai .message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        .message.ai .message-content th,
+        .message.ai .message-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .message.ai .message-content th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .message.ai .message-content hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 12px 0;
+        }
+
+        .message.ai .message-content.streaming::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .input-container {
+            background: #fff;
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-container input:focus {
+            border-color: #007bff;
+        }
+
+        .input-container button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .input-container button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .input-container button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AI 助手</h1>
+        <div class="user-info">用户ID: 001</div>
+    </div>
+
+    <div class="chat-container" id="chatContainer"></div>
+
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="请输入消息..." maxlength="500">
+        <button id="sendBtn" onclick="sendMessage()">发送</button>
+    </div>
+
+    <script>
+        const userId = '001';
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // 回车发送
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return contentDiv;
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // 禁用输入
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // 显示用户消息
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // 创建AI消息占位
+            const aiMessageDiv = document.createElement('div');
+            aiMessageDiv.className = 'message ai';
+            const aiContentDiv = document.createElement('div');
+            aiContentDiv.className = 'message-content streaming';
+            aiContentDiv.textContent = '';
+            aiMessageDiv.appendChild(aiContentDiv);
+            chatContainer.appendChild(aiMessageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 使用 SSE 接收流式响应
+            const url = `/memory/chat/${userId}?message=${encodeURIComponent(message)}`;
+            const eventSource = new EventSource(url);
+
+            let fullResponse = '';
+
+            eventSource.onmessage = function(event) {
+                fullResponse += event.data;
+                aiContentDiv.textContent = fullResponse;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            };
+
+            eventSource.onerror = function(error) {
+                eventSource.close();
+                aiContentDiv.classList.remove('streaming');
+                
+                if (!fullResponse) {
+                    aiContentDiv.textContent = '抱歉，请求出错，请稍后重试。';
+                }
+                
+                // 恢复输入
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.focus();
+            };
+
+            eventSource.addEventListener('close', function() {
+                eventSource.close();
+                aiContentDiv.classList.remove('streaming');
+                
+                // 将 Markdown 文本转换为 HTML
+                aiContentDiv.innerHTML = parseMarkdown(fullResponse);
+                
+                // 恢复输入
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.focus();
+            });
+
+        // 简单的 Markdown 解析器
+        function parseMarkdown(text) {
+            if (!text) return '';
+            
+            let html = text;
+            
+            // 转义 HTML 特殊字符
+            html = html.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;');
+            
+            // 代码块 (```code```)
+            html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
+                return '<pre><code>' + code.trim() + '</code></pre>';
+            });
+            
+            // 行内代码 (`code`)
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // 标题 (# ## ### ####)
+            html = html.replace(/^#### (.+$)/gim, '<h4>$1</h4>');
+            html = html.replace(/^### (.+$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.+$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.+$)/gim, '<h1>$1</h1>');
+            
+            // 粗体 (**text**)
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            
+            // 斜体 (*text*)
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            
+            // 删除线 (~~text~~)
+            html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+            
+            // 引用 (> text)
+            html = html.replace(/^&gt; (.+$)/gim, '<blockquote>$1</blockquote>');
+            
+            // 无序列表 (- item 或 * item)
+            html = html.replace(/^\- (.+$)/gim, '<li>$1</li>');
+            html = html.replace(/^\* (.+$)/gim, '<li>$1</li>');
+            
+            // 将连续的 li 包裹在 ul 中
+            html = html.replace(/(<li>.*<\/li>)/s, function(match) {
+                return '<ul>' + match + '</ul>';
+            });
+            
+            // 有序列表 (1. item)
+            html = html.replace(/^\d+\. (.+$)/gim, '<li>$1</li>');
+            
+            // 链接 [text](url)
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+            
+            // 分隔线 (--- 或 ***)
+            html = html.replace(/^(---|\*\*\*)$/gim, '<hr>');
+            
+            // 表格
+            html = html.replace(/\|(.+)\|/g, function(match) {
+                const cells = match.split('|').filter(c => c.trim());
+                if (cells.length === 0) return match;
+                return '<tr>' + cells.map(c => '<td>' + c.trim() + '</td>').join('') + '</tr>';
+            });
+            
+            // 将连续的 tr 包裹在 table 中
+            html = html.replace(/(<tr>.*<\/tr>)/s, function(match) {
+                return '<table>' + match + '</table>';
+            });
+            
+            // 换行处理：将多个换行分隔的段落用 <p> 包裹
+            const paragraphs = html.split(/\n\n+/);
+            html = paragraphs.map(p => {
+                p = p.trim();
+                if (!p) return '';
+                // 如果已经是块级元素，不包裹
+                if (p.match(/^<(h[1-6]|ul|ol|pre|blockquote|table|hr)/)) {
+                    return p;
+                }
+                // 处理单行换行
+                p = p.replace(/\n/g, '<br>');
+                return '<p>' + p + '</p>';
+            }).join('');
+            
+            return html;
+        }
+        }
+
+        // 页面加载完成后聚焦输入框
+        window.onload = function() {
+            messageInput.focus();
+        };
+    </script>
+</body>
+</html>
