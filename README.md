@@ -7,6 +7,7 @@
 - [AI Services](#section-3)
 - [Agent](#section-4)
 - [工具调用（Tool Calling）](#section-5)
+- [RAG(检索增强生成)](#section-6)
 
 <a id="section-1"></a>
 ## 聊天与对应模型 
@@ -443,5 +444,92 @@ public class CityInformation {
 }
 ```
 
+<a id="section-6"></a>
+## RAG
 
+### 文档加载与解析（Document Loaders & Parsers）
 
+#### 核心抽象
+
+LangChain4j 中，文档解析遵循统一的接口设计
+
+```java
+// 核心接口：将输入流转换为 Document
+public interface DocumentParser {
+    Document parse(InputStream inputStream);
+}
+
+// Document 对象结构
+public class Document {
+    private final String text;           // 文档文本内容
+    private final Metadata metadata;     // 元数据（文件名、URL、页码等）
+}
+```
+
+#### 内置解析器
+
+**PDF 解析（ApachePdfBoxDocumentParser）**
+
+```java
+DocumentParser parser = new ApachePdfBoxDocumentParser();
+        Document parse = parser.parse(new FileInputStream(file));
+
+String text = parse.text() ;
+
+System.out.println("解析文件的文本内容：" + text());
+```
+
+**Office 文档解析（MsOfficeDocumentParser)**
+
+```java
+// 支持 Word、Excel、PowerPoint
+DocumentParser parser = new MsOfficeDocumentParser(DOCUMENT);  // Word
+DocumentParser parser = new MsOfficeDocumentParser(SPREADSHEET);  // Excel  
+DocumentParser parser = new MsOfficeDocumentParser(PRESENTATION);  // PPT
+
+// 实际使用：自动检测类型
+DocumentParser autoParser = new MsOfficeDocumentParser();
+
+// 解析 Word 文档
+Document doc = autoParser.parse(new FileInputStream("contract.docx"));
+```
+
+**文本解析（TextDocumentParser）**
+
+```java
+// 纯文本文件
+DocumentParser parser = new TextDocumentParser();
+
+// 支持指定编码
+DocumentParser utf8Parser = new TextDocumentParser(StandardCharsets.UTF_8);
+DocumentParser gbkParser = new TextDocumentParser(Charset.forName("GBK"));
+
+// Markdown 也属于文本，但保留标记
+Document mdDoc = parser.parse(new FileInputStream("readme.md"));
+// 内容包含 # ## 等 Markdown 标记，分割时可利用这些结构
+```
+
+#### 元数据管理
+
+> LangChain4j RAG 大部分解析器都是默认不会自动提取文件元数据
+
+```java
+// 2. 手动构建元数据
+Metadata metadata = new Metadata();
+        
+// 文件基本信息
+metadata.put("file_name", filePath.getFileName().toString());
+metadata.put("file_path", filePath.toAbsolutePath().toString());
+metadata.put("file_extension", getFileExtension(filePath));
+metadata.put("file_size_bytes", Files.size(filePath));
+        
+// 时间信息
+BasicFileAttributes attrs = Files.readAttributes(filePath, BasicFileAttributes.class);
+metadata.put("creation_time", attrs.creationTime().toString());
+metadata.put("last_modified_time", attrs.lastModifiedTime().toString());
+metadata.put("last_access_time", attrs.lastAccessTime().toString());
+        
+// 自定义业务标签
+metadata.put("source_type", "product_manual");
+metadata.put("doc_type", "markdown");
+```

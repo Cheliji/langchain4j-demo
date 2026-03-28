@@ -10,6 +10,7 @@
         <module name="chat-demo" />
         <module name="ai-services" />
         <module name="tool-calling" />
+        <module name="rag" />
         <module name="chat-memory" />
       </profile>
     </annotationProcessing>
