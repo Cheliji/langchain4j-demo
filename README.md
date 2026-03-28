@@ -6,6 +6,7 @@
 - [聊天记忆](#section-2)
 - [AI Services](#section-3)
 - [Agent](#section-4)
+- [工具调用（Tool Calling）](#section-5)
 
 <a id="section-1"></a>
 ## 聊天与对应模型 
@@ -338,4 +339,109 @@ interface PriorityAnalyzer {
 - 有明确的**成功标准**（能判断是否做对）
 - 能实现**反馈循环**（错了能改）
 - 能融入有效的人工监督
+
+<a id="section-5"></a>
+
+## 工具调用（Tool Calling）
+
+**工具可以是任何东西**：网络搜索、调用外部 API、执行特定代码片段、数据库查询等
+
+**工作流程**：用户提问 -> LLM 判断是否需要工具 -> 如需工具则生成调用请求 -> 开发这执行工具 -> 将结果返回给 LLM -> LLM 生成最终回答
+
+LangChain4j 提供了两种使用工具的方式
+
+| 级别   | 使用方式                                           | 适用场景                   |
+| ------ | -------------------------------------------------- | -------------------------- |
+| 低级别 | 使用 `ChatLanguageModel` 和`ToolSpecification` API | 需要精细控制工具调用流程   |
+| 高级别 | 使用 AI services 和`@Tool` 注解的 Java 方法        | 快速开发、自动处理工具调用 |
+
+
+
+### 注解详解
+
+#### `@Tool`注解
+
+用于标记可由 LLM 调用的方法
+
+```java
+class Calculator {
+    @Tool  // name 默认为方法名 "add"
+    double add(int a, int b) {
+        return a + b;
+    }
+
+    @Tool("返回给定数字的平方根")  // 自定义描述
+    double squareRoot(double x) {
+        return Math.sqrt(x);
+    }
+}
+```
+
+**`@Tool`注解属性**
+
+- `name`可选：工具名称，默认为方法名
+- `value`可选：工具描述，帮助 LLM 理解何时使用该工具
+
+#### `@P`注解
+
+用于描述方法参数
+
+```java
+@Tool("获取指定城市的天气预报")
+String getWeather(
+        @P("需要查询天气的城市名称") String city,  // 描述参数含义
+        @P("预报天数，范围 1-7 天") int days
+) {
+    return city + "未来" + days + "天天气：晴转多云";
+}
+```
+
+**`@P`注解属性**
+
+- `value`必选：参数描述
+- `required`可选：参数是否必需，默认为 true
+
+#### `Description`注解
+
+用于描述类和字段：
+
+```java
+@Description("要执行的查询")
+class Query {
+    @Description("要选择的字段")
+    private List<String> select;
+    
+    @Description("过滤条件")
+    private List<Condition> where;
+}
+
+@Tool
+Result executeQuery(Query query) {
+    // 实现
+}
+```
+
+
+
+**注意**：在 SpringBoot 中，必须将工具类加入 Spring 容器中管理
+
+```java
+@Component //关键：必须被 Spring 管理
+public class CityInformation {
+
+    @Tool("返回给定城市的天气预报")
+    public String getWeather(@P("指定城市")String city) {
+        return city + "最近几天下雨" ;
+    }
+
+
+    @Tool("返回给定城市现在的道路情况")
+    public String getRoadInformation(@P("指定城市")String city) {
+        return city + "路况不错,不塞车" ;
+    }
+
+}
+```
+
+
 

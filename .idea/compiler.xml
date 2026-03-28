@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="chat-demo" />
         <module name="ai-services" />
+        <module name="tool-calling" />
         <module name="chat-memory" />
       </profile>
     </annotationProcessing>
@@ -18,6 +19,7 @@
       <module name="ai-services" options="-parameters" />
       <module name="chat-demo" options="-parameters" />
       <module name="chat-memory" options="-parameters" />
+      <module name="tool-calling" options="-parameters" />
     </option>
   </component>
 </project>
