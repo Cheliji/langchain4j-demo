@@ -3,10 +3,9 @@
 **目录**
 
 - [聊天与对应模型 ](#section-1)
-
 - [聊天记忆](#section-2)
-
 - [AI Services](#section-3)
+- [Agent](#section-4)
 
 <a id="section-1"></a>
 ## 聊天与对应模型 
@@ -282,4 +281,61 @@ interface PriorityAnalyzer {
 }
 ```
 
+<a id="section-4"></a>
+## Agent
+
+**引用文章**
+
+[Building Effective AI Agents \ Anthropic](https://www.anthropic.com/engineering/building-effective-agents)
+
+[构建高效智能体（翻译版）](https://blog.frognew.com/2025/01/building-effective-agents.html)
+
+**LangChain4j 中构建 Agent 的方式**
+
+- **推荐方式**：使用高层 API（AI Service + Tool API）就能构建大多数 Agent 功能
+- **灵活方式**：如果需要更精细控制，可以使用底层 API（ChatLanguageModel + ToolSpceification + ChatMemeory）
+
+### 解读 Anthropic 文章的核心观点
+
+#### 两个概念
+
+| 类型               | 定义                              | 使用场景                           |
+| ------------------ | --------------------------------- | ---------------------------------- |
+| Workflow（工作流） | 通过预定义代码路径编排 LLM 和工具 | 流程固定、可预测的任务             |
+| Agent（智能体）    | LLM 动态指导自己的流程和工具使用  | 开放式、步骤无法预先确定的复杂任务 |
+
+**核心建议**：不要为了用 Agent 而用 Agent。如果工作流能解决，就别上 Agent
+
+#### 基础构建块：增强型 LLM
+
+无论 Workflow 还是 Agent，基础都是**增强型 LLM**，具备三个能力：
+
+- **检索**：主动生成搜索查询信息
+- **工具使用**：理解何时调用什么工具（Tool Calling）
+- **记忆**：决定保存哪些信息、何时使用
+
+#### 五种常见工作流模式
+
+如果你需要比单次 LLM 调用更复杂的逻辑，可以考虑这些模式
+
+1. **Prompt Chaining（提示链）**：把任务拆成几步，上一步输出作为下一步输入
+2. **Routing（路由）**：先让 LLM 判断任务类型，在路由到不同的处理流程
+3. **Parallelization（并行化）**：把任务拆成多个子任务并行执行，在整合结果
+4. **Orchestrator-Workers（编排器-工人）**：一个中央协调者动态拆解任务，分配给多个子代理并行处理，再汇总结果
+5. **Evaluator-Optimizer（评估-优化）**：一个 LLM 生成结果，另一个 LLM 评估，循环迭代直到质量达标
+
+**真正的 Agent** 是让 LLM 自己循环决定：下一步做什么、调用什么工具、什么时候结束
+
+#### 构建 Agent 的三个黄金法则
+
+1. **保持简单**：不要为了复杂而复杂，简单的 Prompt 能搞定的就别用 Agent
+2. **保持透明**：让用户清楚看到 Agent 的规划步骤和决策过程
+3. **精心设计工具接口（ACI）**：给 LLM 用的工具必须有清楚文档、参数描述准确，要像给初级工程师写文档一样认真
+
+#### Agent 最适合什么场景
+
+- 需要**对话+行动**结合的任务
+- 有明确的**成功标准**（能判断是否做对）
+- 能实现**反馈循环**（错了能改）
+- 能融入有效的人工监督
 
