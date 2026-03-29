@@ -1,4 +1,4 @@
-package com.cheliji.ai;
+package com.cheliji.ai.document;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
@@ -15,7 +15,9 @@ public class DocumentDemo {
 
     public static void main(String[] args) throws FileNotFoundException {
 
-        Document document = toAnalyzeFile(new File("D:\\\\Users\\\\Administrator\\\\Desktop\\\\产品手册.pdf")) ;
+        Document document = toAnalyzeFile(
+                new File("D:\\\\Users\\\\Administrator\\\\Desktop\\\\产品手册.pdf")
+        ) ;
 
         System.out.println("解析文件的文本内容：" + document.text());
         System.out.println("解析文本元数据：" + document.metadata());

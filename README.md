@@ -533,3 +533,78 @@ metadata.put("last_access_time", attrs.lastAccessTime().toString());
 metadata.put("source_type", "product_manual");
 metadata.put("doc_type", "markdown");
 ```
+### 文档分块
+
+#### 分块 API 体系
+
+**基础接口**
+
+```java
+// 核心接口：所有分块策略的抽象
+public interface DocumentSplitter {
+    List<TextSegment> split(Document document);
+    List<TextSegment> split(List<Document> documents);
+}
+```
+
+**内置分块策略**
+
+| 实现类                         | 分块维度 | 适用场景                   |
+| ------------------------------ | -------- | -------------------------- |
+| `DocumentByParagraphSplitter`  | 段落     | 文章、报告、通用文本       |
+| `DocumentBySentenceSplitter`   | 句子     | 短文本、法律条文、精确检索 |
+| `DocumentByLineSplitter`       | 行       | 日志、代码、列表数据       |
+| `DocumentByWordSplitter`       | 单词     | 细粒度控制（较少用）       |
+| `DocumentByCharacterSplitter`  | 字符     | 最细粒度，保底策略         |
+| `HierarchicalDocumentSplitter` | 层级结构 | 保持文档结构层次           |
+
+**核心参数详解**
+
+```java
+new XxxSplitter(
+	int maxSegmentSize ,  // 每个块的最大尺寸（tokens/字符）
+    int maxOverlapSize    // 相邻块之间的重叠大小
+)
+```
+
+**自定义分块策略**
+
+```java
+// 实现自定义分块逻辑
+public class CustomSplitter implements DocumentSplitter {
+    
+    @Override
+    public List<TextSegment> split(Document document) {
+        String text = document.text();
+        Metadata metadata = document.metadata();
+        
+        List<TextSegment> segments = new ArrayList<>();
+        
+        // 自定义逻辑：按特定分隔符分割
+        String[] parts = text.split("---PAGE BREAK---");
+        
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i].trim();
+            if (part.isEmpty()) continue;
+            
+            // 继承原文档元数据，并添加分块信息
+            Metadata segmentMetadata = metadata.copy()
+                .put("chunk_index", i)
+                .put("total_chunks", parts.length);
+            
+            segments.add(TextSegment.from(part, segmentMetadata));
+        }
+        
+        return segments;
+    }
+    
+    @Override
+    public List<TextSegment> split(List<Document> documents) {
+        return documents.stream()
+            .flatMap(doc -> split(doc).stream())
+            .collect(Collectors.toList());
+    }
+}
+```
+
+> 由于 LangChain4j 的分块策略并不会根据要求截取重叠文字，所以如果使用 LangChain4j 提供的分块策略 API ，会导致相邻的 chunk 块语义断裂严重
