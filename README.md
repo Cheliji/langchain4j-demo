@@ -607,4 +607,4 @@ public class CustomSplitter implements DocumentSplitter {
 }
 ```
 
-> 由于 LangChain4j 的分块策略并不会根据要求截取重叠文字，所以如果使用 LangChain4j 提供的分块策略 API ，会导致相邻的 chunk 块语义断裂严重
+> 1.0.0-beta3 我使用的版本中，LangChain4j 似乎有一个 BUG， 就是分块策略并不会根据要求截取重叠文字，所以如果使用 LangChain4j 提供的分块策略 API ，会导致相邻的 chunk 块语义断裂严重
