@@ -2,7 +2,6 @@ package com.cheliji.ai.embedding;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
-import dev.langchain4j.model.output.Response;
 
 public class EmbeddingDemo {
 
@@ -14,7 +13,7 @@ public class EmbeddingDemo {
 
         OpenAiEmbeddingModel embeddingModel = OpenAiEmbeddingModel.builder()
                 .baseUrl("https://api.siliconflow.cn/v1")
-                .apiKey("API-KEY")
+                .apiKey(System.getenv("SILICONFLOW_API_KEY"))
                 .modelName("BAAI/bge-large-zh-v1.5")
                 .build();
 
@@ -22,6 +21,8 @@ public class EmbeddingDemo {
         Embedding embedding1 = embeddingModel.embed(text1).content();
         Embedding embedding2 = embeddingModel.embed(text2).content();
         Embedding embedding3 = embeddingModel.embed(text3).content();
+
+        System.out.println("向量为度：" + embedding.dimension());
 
 
         System.out.println("问题向量化：[") ;
